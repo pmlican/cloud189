@@ -59,12 +59,15 @@ noCache	0.9789658309583198
  */
 
 const $ = new Env('天翼云批量转存');
+const shareUrl = 'https://cloud.189.cn/t/yIbuMnUFjmYz'
+const accessCode = 'c8hx'
+
 const baseUrl = 'https://cloud.189.cn/'
 const shareDirListPath = 'v2/listShareDirByShareIdAndFileId.action'
 
 getShareDirParam = {
     'shortCode': 'yIbuMnUFjmYz',
-    'accessCode': 'c8hx',
+    'accessCode': accessCode,
     'verifyCode' : '685350',
     'orderBy': 1,
     'order': 'ASC',
