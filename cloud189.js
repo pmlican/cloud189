@@ -58,12 +58,15 @@ pageSize	60
 noCache	0.9789658309583198
  */
 
+
 const $ = new Env('天翼云批量转存');
 const shareUrl = 'https://cloud.189.cn/t/yIbuMnUFjmYz'
 const accessCode = 'c8hx'
 
 const baseUrl = 'https://cloud.189.cn/'
 const shareDirListPath = 'v2/listShareDirByShareIdAndFileId.action'
+const batchTaskPath = 'createBatchTask.action'
+const cookie = 'edrive_view_mode=icon; COOKIE_LOGIN_USER=61013D668A05C45519BA4C94B029B0E1E0C583C0F1F9E0111F4E06649274BE7470876D74CB07355E9FED3239BF8232EF5147FF90D02476C8A8813940; Login_Hash=; COOKIE_CTWAP_LOGOUT=COOKIE_CTWAP_LOGOUT; offline_Pic_Showed=true; shareId_170056030=c8hx; apm_ct=20210222214217101; apm_ip=4A889674D4AD6B60ED12595864ADCB6FB1920EFA; apm_sid=897B2B6D3E4A11362A432A7AB3F68187; apm_ua=C8BBA35ABCC04F19E345178B29921446; apm_uid=A447087FFD6134CBBDC1176D56D871B8; validCodeTimestamp=aaazYeq6bB015bu7REqDx; JSESSIONID=aaazYeq6bB015bu7REqDx; JSESSIONID=aaa8XZ46iGA3N9XkupwDx; COOKIE_CTWAP_LOGOUT=COOKIE_CTWAP_LOGOUT; COOKIE_LOGIN_USER=A75CBA164B948CC3'
 
 getShareDirParam = {
     'shortCode': 'yIbuMnUFjmYz',
@@ -75,7 +78,7 @@ getShareDirParam = {
     'pageSize': 60,
 }
 
-function getShareDirList() {
+async function getShareDirList() {
     return new Promise((resolve) => {
         $.get({
             url: baseUrl + shareDirListPath + '?' + parseParams(getShareDirParam),
@@ -87,8 +90,9 @@ function getShareDirList() {
                 if(err) {
                     console.log(`${JSON.stringify(err)}`)
                 } else {
-                  var jsonStr = JSON.parse(data)
-                  console.log(jsonStr)
+                  var dirData = JSON.parse(data)
+                  $.dirList = dirData.data
+                //   console.log(jsonStr)
                 }
             }catch(e) {
                 $.logErr(e, resp)
@@ -98,6 +102,105 @@ function getShareDirList() {
         })
     })
 }
+
+async function viewOwnDir() {
+    return new Promise((resolve) => {
+
+    })
+}
+
+async function batchTransferFiles(batchBody) {
+    return new Promise((resolve) => {
+        $.post({
+            url: baseUrl + batchTaskPath,
+            body: batchBody,
+            headers: {
+                'cookie': cookie,
+                'Content-Type' : 'application/x-www-form-urlencoded'
+            }
+        },(err, resp, data) => {
+            try {
+                if(err) {
+                    console.log(`${JSON.stringify(err)}`)
+                } else {
+                    // var json = JSON.parse(data)
+                //   console.log(jsonStr)
+                    // $.taskId = json
+                    console.log(data)
+                }
+            }catch(e) {
+                $.logErr(e, resp)
+            }finally {
+                resolve();
+            }
+        })
+    })
+}
+
+async function checkBatchTask(taskId) {
+    return new Promise((resolve) => {
+        $.post({
+            url: baseUrl,
+            body: {
+                'taskId': taskId,
+                'type':	'SHARE_SAVE'
+            },
+            headers: {
+                'cookie': cookie
+            }
+        }, (err, resp, data) => {
+            try {
+                if(err) {
+                    console.log(`${JSON.stringify(err)}`)
+                } else {
+                    var json = JSON.parse(data)
+                    $.checkData = json
+                    console.log(json)
+                }
+            }catch(e) {
+                $.logErr(e, resp)
+            }finally {
+                resolve();
+            }
+        })
+    })
+}
+
+async function doWork() {
+   await getShareDirList()
+    for (let index = 0; index < $.dirList.length; index++) {
+        const item = $.dirList[index];
+        const taskInfos = [{"fileId":item.fileId,"fileName":item.fileName,"isFolder":item.isFolder,"srcParentId":item.parentId}]
+        // console.log(JSON.stringify(taskInfos))
+        const batchBody = {
+            'type':	'SHARE_SAVE',
+            'taskInfos': taskInfos,
+            'targetFolderId':	'-11', // -11全部
+            'shareId':	'170056030',
+        }
+        // console.log(JSON.stringify(batchBody))
+        // let test = encodeURIComponent(JSON.stringify(batchBody))
+        // console.log(test)
+        let test = 'type=SHARE_SAVE&taskInfos=%5B%7B%22fileId%22%3A%2271463311655571945%22%2C%22fileName%22%3A%2201%20%E4%B8%93%E9%A2%98%E8%AF%BE%22%2C%22isFolder%22%3A1%2C%22srcParentId%22%3A%2211301311111819940%22%7D%5D&targetFolderId=-11&shareId=170056030'
+        await batchTransferFiles(test)
+        // await checkBatchTask($.taskId)
+
+        //请求成功就重复调
+        // while ($.checkData.taskStatus !== '4') {
+        //     await checkBatchTask($.taskId)
+        //     if (checkData.taskStatus === '4' && checkData.errorCode === undefined) {
+        //         console.log('转存成功')
+        //     } else {
+        //         console.log(checkData.errorCode)
+        //     }
+        // }
+        if (index == 0) {
+            break
+        }
+    }
+}
+
+doWork()
 
 function parseParams(data) {
     try {
@@ -114,7 +217,6 @@ function parseParams(data) {
     }
 }
 
-getShareDirList()
 
 
 // prettier-ignore
